@@ -1,17 +1,11 @@
-package com.jasondavidpeters.thevillage1_5.graphics;
+package com.jasondavidpeters.thevillage1_5.ui;
 
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.util.ArrayList;
 
-import com.jasondavidpeters.thevillage1_5.Game;
-import com.jasondavidpeters.thevillage1_5.Game.GameState;
-
-public class MessageBox {
-
-	private int x, y, width, height;
+public class MessageBox extends Component {
 
 	private static Font messageFont = new Font(Font.SANS_SERIF, Font.PLAIN, 18);
 
@@ -28,14 +22,9 @@ public class MessageBox {
 	public int startingPoint;
 	private int messageHeight = 1;
 	private boolean clear;
-	private int time;
-	private boolean doOnce;
 
 	public MessageBox(int x, int y, int width, int height) {
-		this.x = x;
-		this.y = y;
-		this.width = width;
-		this.height = height;
+		super(x,y,width,height);
 		scrollBarHeight = height;
 		scrollBarY = y;
 	}
@@ -74,16 +63,6 @@ public class MessageBox {
 	}
 
 	public void tick() {
-		time++;
-		if (Game.getGameState() == Game.GameState.WELCOME) {
-			write("Welcome to The Village 1.5!");
-			if (time % (180) == 0) {
-				write("What is your name?");
-				//TODO: wait for response
-				doOnce=true;
-				Game.setGameState(GameState.LOGIN);
-			}
-		}
 	}
 
 	public void addScrollbar(Graphics g) {

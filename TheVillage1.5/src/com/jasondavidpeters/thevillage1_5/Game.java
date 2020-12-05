@@ -4,8 +4,10 @@ import java.awt.Graphics;
 import java.awt.image.BufferStrategy;
 
 import com.jasondavidpeters.thevillage1_5.entity.Player;
-import com.jasondavidpeters.thevillage1_5.graphics.ChatBox;
-import com.jasondavidpeters.thevillage1_5.graphics.MessageBox;
+import com.jasondavidpeters.thevillage1_5.ui.ChatBox;
+import com.jasondavidpeters.thevillage1_5.ui.InformationBox;
+import com.jasondavidpeters.thevillage1_5.ui.MessageBox;
+import com.jasondavidpeters.thevillage1_5.ui.UIManager;
 
 public class Game implements Runnable {
 
@@ -15,12 +17,12 @@ public class Game implements Runnable {
 	private GameWindow gw;
 	private ChatBox chatbox;
 	private MessageBox messagebox;
+	private InformationBox informationBox;
 	private Player player;
 
 	private int time;
-
-	private long timer = System.currentTimeMillis();
-	private boolean doOnce;
+	
+	public static UIManager uimanager = new UIManager();
 
 	private static GameState currentState = GameState.WELCOME;
 
@@ -39,50 +41,22 @@ public class Game implements Runnable {
 
 	public void tick() {
 		time++;
+		if (time == Integer.MAX_VALUE-1) time=0;
 		// messagebox.write(chatbox.getMessage());
 		if (player.canType()) {
 			chatbox.enableKeyboard();
 		} else {
 			chatbox.disableKeyboard();
 		}
-		chatbox.tick();
-		messagebox.tick();
-
-		switch (currentState) { // Check for the current game state
-		case LOGIN:
-			player.setCanType(true);
-			if (messagebox.getMessages().size() > 2) { // get the next message
-				String username = messagebox.getMessages().get(2);
-				player = new Player(username);
-				if (time %30 ==0)
-				messagebox.write("Welcome, " + username + ", to the Village 1.5!");
-				player.setCanType(false);
-				if (time % 180 == 0) {
-					messagebox.clear();
-					setGameState(GameState.LOBBY);
-				}
+		uimanager.tick();
+		player.tick();
+		
+		if (Game.getGameState() == Game.GameState.WELCOME) {
+			messagebox.write("Welcome to The Village 1.5!");
+			if (time % (180) == 0) {
+				messagebox.write("What is your name?");
+				Game.setGameState(GameState.LOGIN);
 			}
-			break;
-		case LOBBY:
-			if (doOnce) {
-				messagebox.write("Hello, " + player.getName() + " welcome to the Village");
-				doOnce = false;
-				timer = System.currentTimeMillis();
-			}
-			if (System.currentTimeMillis() - timer >= 1000) {
-				messagebox.write("On your right-hand side you will");
-				messagebox.write("see a list of keywords to choose from");
-				player.setCanType(true);
-				timer = System.currentTimeMillis();
-			}
-			/*
-			 * we dont want the user to type until prompted. Welcome to the Village You have
-			 * a list of options on the right-hand side of your screen Type one of the
-			 * keywords to find out more | MINE | SHOP | INVENTORY | EXIT
-			 */
-			break;
-		default:
-			break;
 		}
 	}
 
@@ -93,8 +67,7 @@ public class Game implements Runnable {
 			return;
 		}
 		Graphics g = bs.getDrawGraphics();
-		chatbox.render(g);
-		messagebox.render(g);
+		uimanager.render(g);
 
 		if (chatbox.pressedEnter) { // if user presses enter
 			messagebox.write(chatbox.getMessage()); // submit message to messagebox
@@ -112,11 +85,16 @@ public class Game implements Runnable {
 	}
 
 	public void run() {
+		messagebox = new MessageBox(0, 0, (GameWindow.WIDTH / 4) * 3, (GameWindow.HEIGHT / 3) * 2);
 		chatbox = new ChatBox(0, (GameWindow.HEIGHT / 3) * 2, GameWindow.WIDTH,
 				GameWindow.HEIGHT - ((GameWindow.HEIGHT / 3) * 2));
+		informationBox = new InformationBox(messagebox.getWidth(), 0, GameWindow.WIDTH-messagebox.getWidth(),GameWindow.HEIGHT - chatbox.getHeight());
 		gw.addKeyListener(chatbox);
-		messagebox = new MessageBox(0, 0, (GameWindow.WIDTH / 4) * 3, (GameWindow.HEIGHT / 3) * 2);
+		uimanager.add(messagebox);
+		uimanager.add(informationBox);
+		uimanager.add(chatbox);
 		player = new Player();
+		player.init(messagebox, chatbox);
 		long timer = System.currentTimeMillis();
 		long before = System.nanoTime();
 		double delta = 0.0;
