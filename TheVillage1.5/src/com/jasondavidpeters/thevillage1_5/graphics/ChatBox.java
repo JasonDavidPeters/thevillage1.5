@@ -22,6 +22,7 @@ public class ChatBox implements KeyListener {
 	private StringBuilder sb = new StringBuilder();
 	private int stringWidth;
 	public boolean pressedEnter;
+	private boolean canType;
 
 	public ChatBox(int x, int y, int width, int height) {
 		this.x = x;
@@ -49,22 +50,33 @@ public class ChatBox implements KeyListener {
 	}
 
 	public void keyTyped(KeyEvent e) {
-		if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
-			if (sb.length() > 0) { // string must be at least 1 character long to delete a character with backspace
-				sb.deleteCharAt(sb.length() - 1); // if you press backspace then delete character at the end of the string
+		if (canType) {
+			if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
+				if (sb.length() > 0) { // string must be at least 1 character long to delete a character with backspace
+					sb.deleteCharAt(sb.length() - 1); // if you press backspace then delete character at the end of the string
+				} else {
+					return;
+				}
+			} else if (stringWidth >= GameWindow.WIDTH - chatFont.getSize()) {
+				sb.deleteCharAt(sb.lastIndexOf(sb.toString())); // if the string is at the end of the window then delete the last character
+			} else if (!pressedEnter && e.getKeyChar() == KeyEvent.VK_ENTER && (sb.toString().trim()).length() > 0) { // if you press enter + check for empty string
+			while ((sb.toString().trim()).length() > 0) // huh
+					pressedEnter = true;
+			pressedEnter=false;
 			} else {
-				return;
+				sb.append(e.getKeyChar());
 			}
-		} else if (stringWidth >= GameWindow.WIDTH - chatFont.getSize()) {
-			sb.deleteCharAt(sb.lastIndexOf(sb.toString())); // if the string is at the end of the window then delete the last character
-		} else if (!pressedEnter && e.getKeyChar() == KeyEvent.VK_ENTER && (sb.toString().trim()).length() > 0) { // if you press enter + check for empty string
-		while ((sb.toString().trim()).length() > 0) // huh
-				pressedEnter = true;
-		pressedEnter=false;
 		} else {
-			sb.append(e.getKeyChar());
+			
 		}
 
+	}
+	
+	public void enableKeyboard() {
+		setCanType(true);
+	}
+	public void disableKeyboard() {
+		setCanType(false);
 	}
 
 	public void keyPressed(KeyEvent e) {
@@ -79,6 +91,9 @@ public class ChatBox implements KeyListener {
 
 	public void setMessage(String message) {
 		sb.replace(0, sb.length(), message);
+	}
+	public void setCanType(boolean canType) {
+		this.canType=canType;
 	}
 
 }

@@ -6,6 +6,9 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.util.ArrayList;
 
+import com.jasondavidpeters.thevillage1_5.Game;
+import com.jasondavidpeters.thevillage1_5.Game.GameState;
+
 public class MessageBox {
 
 	private int x, y, width, height;
@@ -20,10 +23,13 @@ public class MessageBox {
 	private int scrollBarHeight;
 	private int scrollbarWidth = 10;
 	private int sizeInc;
-	public int maxMessagesPerScreen = 24;
+	public int maxMessagesPerScreen = 20;
 	public int minHeight = 50;
 	public int startingPoint;
-	int messageHeight = 1;
+	private int messageHeight = 1;
+	private boolean clear;
+	private int time;
+	private boolean doOnce;
 
 	public MessageBox(int x, int y, int width, int height) {
 		this.x = x;
@@ -34,34 +40,50 @@ public class MessageBox {
 		scrollBarY = y;
 	}
 
+	public void clear() {
+		setClear(true);
+	}
+
 	public void render(Graphics g) {
 		g.setColor(Color.blue);
 		g.fillRect(x, y, width, height);
 		g.setColor(Color.black);
 		g.setFont(messageFont);
 		for (int i = startingPoint; i < messages.size(); i++) {
-			//System.out.println("messages size: " + messages.size());
-			//System.out.println(messages.get(i));
 			if (startingPoint > 0) {
 				g.drawString(messages.get(i).toString(), x, (messageHeight) * messageSpacing);
 				messageHeight++;
-				//System.out.println("height: " + messageHeight);
 			} else {
-				g.drawString(messages.get(i).toString(), x, (i+1) * messageSpacing);// calculation needs to change
+				g.drawString(messages.get(i).toString(), x, (i + 1) * messageSpacing);// calculation needs to change
 			}
 		}
-		messageHeight=1;
+		messageHeight = 1;
 		// from startpoint to maxmessage limit, display messages
 		if (messages.size() >= maxMessagesPerScreen) {
 			addScrollbar(g);
 
 		}
-	//	System.out.println("starting point: " + startingPoint);
+		if (clear) { // clear the screen
+			g.clearRect(x, y, width, height);
+			messages.clear();
+			// potentially have to reset scrollbar and other variables here
+			setClear(false);
+		}
+		// System.out.println("starting point: " + startingPoint);
 		// System.out.println(scrollBarHeight);
 	}
 
 	public void tick() {
-
+		time++;
+		if (Game.getGameState() == Game.GameState.WELCOME) {
+			write("Welcome to The Village 1.5!");
+			if (time % (180) == 0) {
+				write("What is your name?");
+				//TODO: wait for response
+				doOnce=true;
+				Game.setGameState(GameState.LOGIN);
+			}
+		}
 	}
 
 	public void addScrollbar(Graphics g) {
@@ -72,6 +94,7 @@ public class MessageBox {
 	public void write(String message) {
 		if (message.equalsIgnoreCase(""))
 			return;
+		if (messages.contains(message)) return;
 		messages.add(message);
 	}
 
@@ -112,6 +135,14 @@ public class MessageBox {
 	public void setStartingPoint(int i) {
 		this.startingPoint = i;
 
+	}
+
+	public void setClear(boolean clear) {
+		this.clear = clear;
+	}
+
+	public boolean getClear() {
+		return this.clear;
 	}
 
 }

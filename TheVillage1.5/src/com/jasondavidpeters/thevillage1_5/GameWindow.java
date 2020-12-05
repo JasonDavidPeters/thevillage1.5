@@ -12,7 +12,7 @@ public class GameWindow extends Canvas {
 	public final static int HEIGHT = 540;
 	public final static String GAME_TITLE = "The Village 1.5";
 	private JFrame frame;
-
+	
 	public GameWindow() {
 		frame = new JFrame(GAME_TITLE);
 		frame.setVisible(true);
