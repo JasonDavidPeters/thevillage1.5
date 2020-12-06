@@ -11,8 +11,9 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 
 import com.jasondavidpeters.thevillage1_5.GameWindow;
+import com.jasondavidpeters.thevillage1_5.input.Keyboard;
 
-public class ChatBox extends Component implements KeyListener {
+public class ChatBox extends Component {
 	BufferedImage img;
 
 	private static Font chatFont = new Font(Font.SANS_SERIF, Font.PLAIN, 24);
@@ -20,11 +21,13 @@ public class ChatBox extends Component implements KeyListener {
 	private int stringWidth;
 	public boolean pressedEnter;
 	private boolean canType;
+	private int timer;
+	private boolean appended;
 
 	public ChatBox(int x, int y, int width, int height) {
 		super(x, y, width, height);
 		load();
-		
+
 	}
 
 	public void load() {
@@ -46,38 +49,40 @@ public class ChatBox extends Component implements KeyListener {
 	}
 
 	public void tick() {
-
+		chat();
+		timer++;
+//		if (timer %4 ==0)
 	}
 
-	public void keyTyped(KeyEvent e) {
+	public void chat() {
 		if (canType) {
-			if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
+			if (Keyboard.key == KeyEvent.VK_BACK_SPACE) {
 				if (sb.length() > 0) { // string must be at least 1 character long to delete a character with backspace
 					sb.deleteCharAt(sb.length() - 1); // if you press backspace then delete character at the end of the
 														// string
-				} else {
-					return;
+					System.out.println(sb.length());
+					appended = false;
+					Keyboard.resetKey();
 				}
-			} else if (stringWidth >= GameWindow.WIDTH - chatFont.getSize()) {
+			}
+
+			else if (stringWidth >= GameWindow.WIDTH - chatFont.getSize()) {
 				sb.deleteCharAt(sb.lastIndexOf(sb.toString())); // if the string is at the end of the window then delete
 																// the last character
-			} else if (!pressedEnter && e.getKeyChar() == KeyEvent.VK_ENTER && (sb.toString().trim()).length() > 0) { // if
-																														// you
-																														// press
-																														// enter
-																														// +
-																														// check
-																														// for
-																														// empty
-																														// string
-				while ((sb.toString().trim()).length() > 0) // huh
+			} else if (!pressedEnter && Keyboard.key == KeyEvent.VK_ENTER && (sb.toString().trim()).length() > 0) { // string
+				if ((sb.toString().trim()).length() > 0)
 					pressedEnter = true;
-				pressedEnter = false;
-			} else {
-				sb.append(e.getKeyChar());
-			}
-		} else {
+				else
+					pressedEnter = false;
 
+			} else if (!appended && Keyboard.key != '\0') {
+//				System.out.println("appending: " + Keyboard.key);
+				sb.append(Keyboard.key);
+				appended = true;
+			} else {
+				Keyboard.resetKey();
+				appended = false;
+			}
 		}
 
 	}
@@ -88,12 +93,6 @@ public class ChatBox extends Component implements KeyListener {
 
 	public void disableKeyboard() {
 		setCanType(false);
-	}
-
-	public void keyPressed(KeyEvent e) {
-	}
-
-	public void keyReleased(KeyEvent e) {
 	}
 
 	public String getMessage() {
