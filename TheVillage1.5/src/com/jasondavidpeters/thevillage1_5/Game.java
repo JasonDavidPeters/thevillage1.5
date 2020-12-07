@@ -7,11 +7,14 @@ import java.io.IOException;
 
 import javax.imageio.ImageIO;
 
+import com.jasondavidpeters.thevillage1_5.entity.Ore;
 import com.jasondavidpeters.thevillage1_5.entity.Player;
 import com.jasondavidpeters.thevillage1_5.ui.ChatBox;
 import com.jasondavidpeters.thevillage1_5.ui.InformationBox;
+import com.jasondavidpeters.thevillage1_5.ui.Label;
 import com.jasondavidpeters.thevillage1_5.ui.MessageBox;
 import com.jasondavidpeters.thevillage1_5.ui.UIManager;
+import com.jasondavidpeters.thevillage1_5.world.Location;
 
 public class Game implements Runnable {
 
@@ -23,6 +26,10 @@ public class Game implements Runnable {
 	private MessageBox messagebox;
 	private InformationBox informationBox;
 	private Player player;
+	private Ore ore;
+	private Location location;
+
+	private static boolean preloadPhase;
 
 	private BufferedImage gameBackground;
 
@@ -59,13 +66,23 @@ public class Game implements Runnable {
 		uimanager.add(messagebox);
 		uimanager.add(informationBox);
 		uimanager.add(chatbox);
-		player = new Player();
+		player = new Player(null);
+		ore = new Ore();
+		location = new Location();
 		long timer = System.currentTimeMillis();
 		long before = System.nanoTime();
 		double delta = 0.0;
 		double ns = 1000000000.0 / 60.0;
 		int frames = 0;
 		int ticks = 0;
+
+		if (Game.getGameState() == Game.GameState.WELCOME) {
+			messagebox.write("Welcome to The Village 1.5!", false);
+			if (time % (180) == 0) {
+				messagebox.write("What is your name?", false);
+				Game.setGameState(GameState.LOGIN);
+			}
+		}
 		while (running) {
 			long now = System.nanoTime();
 			delta += (now - before) / ns;
@@ -107,73 +124,82 @@ public class Game implements Runnable {
 				 * 
 				 * if user exists then login phase == 3 load player object and set player to
 				 * that object
+				 * 
+				 * if game sends write message then render that message
 				 */
-				String username = messagebox.getMessages().get(messagebox.getMessages().size() - 1);
+				String username = messagebox.getMessages().get(messagebox.getMessages().size() - 1).getText();
 				player.setMessageSubmitted(false);
 				player.setUsername(username);
-				if (player.load() == null) {
+				player.load();
+				if (!player.getPlayerExists()) {
 					player.loginPhase = 1;
-//				messagebox.clear();
 				} else {
-					player = player.load();
-					player.loginPhase=4;
-//					Game.setGameState(GameState.LOBBY);
+					player.loginPhase = 4;
 				}
 				player.setCanType(false);
-				// TODO check if player exists, if they do then perhaps prompt for password
 			} else if (player.loginPhase == 1) {
 				messagebox.write("Enter a password:", false);
 				player.loginPhase = 2;
 			}
 			if (player.messageSubmitted() && player.loginPhase == 2) {
-				String password = messagebox.getMessages().get(messagebox.getMessages().size() - 1);
+				String password = messagebox.getMessages().get(messagebox.getMessages().size() - 1).getText();
 				player.setPassword(password);
-//				System.out.println("player saving");
 				player.save();
 				Game.setGameState(GameState.LOBBY);
+				player.setLocation(Location.lobby);
 				player.setMessageSubmitted(false);
 
 			}
-			if (player.loginPhase==4) {
+			if (player.loginPhase == 4) {
 				messagebox.write("Enter a password:", false);
-				player.loginPhase=5;
+				player.loginPhase = 5;
 			}
 			if (player.messageSubmitted() && player.loginPhase == 5) {
-				String password = messagebox.getMessages().get(messagebox.getMessages().size() - 1);
+				String password = messagebox.getMessages().get(messagebox.getMessages().size() - 1).getText();
 				if (player.getPassword().equals(password)) {
+					player.setLocation(Location.lobby);
 					Game.setGameState(GameState.LOBBY);
 					messagebox.clear();
 				} else {
-					player.loginPhase=4;
+					player.loginPhase = 4;
 				}
 				player.setMessageSubmitted(false);
 			}
-//			if (player.getUsername() != null && !player.playerExists()) {
-//				if (time % 60 == 0)
-//					messagebox.write("Welcome, " + player.getUsername() + ", to the Village 1.5!", false);
-
-//				if (time % 180 == 0) {
-//					messagebox.clear();
-//					Game.setGameState(GameState.LOBBY);
-//				}
 			break;
 		case LOBBY:
-//				messagebox.write("Hello, " + getName() + " welcome to the Village");
-			messagebox.write("On your right-hand side you will", false);
-			messagebox.write("see a list of keywords to choose from", false);
-			if (time % 20 == 0) {
-				messagebox.write("Either click an option,", false);
-				messagebox.write("or type the keyword", false);
+			if (preloadPhase) {
+				messagebox.write("Welcome to " + player.getLocation().getName(), false);
+				messagebox.write("On your right-hand side you will", false);
+				messagebox.write("see a list of keywords to choose from", false);
+				if (time % 20 == 0) {
+					messagebox.write("Either click an option,", false);
+					messagebox.write("or type the keyword", false);
+				}
+				informationBox.write("Mine");
+				informationBox.write("Shop");
+				informationBox.write("Inventory");
+				preloadPhase = false;
 			}
-			informationBox.write("Mine");
-			informationBox.write("Shop");
-			informationBox.write("Inventory");
 			player.setCanType(true);
 			if (player.messageSubmitted()) { // the user has entered a new message into the messagebox
-				messageLoop: for (String m : messagebox.getMessages()) { // Check messages for keywords
+				messageLoop: for (Label l : messagebox.getMessages()) { // Check messages for keywords
+					String m = l.getText().trim();
 					if (m.equalsIgnoreCase("mine")) {
+						System.out.println(true);
 						messagebox.write("We are off to the mines!", false);
 						player.setTransition(true);
+						break messageLoop;
+					} else if (m.equalsIgnoreCase("shop")) {
+						messagebox.write("We are off to shops!", false);
+						player.setLocation(Location.shop);
+						setGameState(GameState.SHOP);
+						informationBox.clear();
+						player.setMessageSubmitted(false);
+						break messageLoop;
+					} else if (m.equalsIgnoreCase("inventory")) {
+						setGameState(GameState.INVENTORY);
+						informationBox.clear();
+						player.setMessageSubmitted(false);
 						break messageLoop;
 					}
 				}
@@ -184,17 +210,79 @@ public class Game implements Runnable {
 					messagebox.clear();
 					player.setTransition(false);
 					informationBox.clear();
-					currentState = GameState.MINE;
+					setGameState(GameState.MINE);
+					player.setLocation(Location.mine);
 				}
-			/*
-			 * we dont want the user to type until prompted. Welcome to the Village You have
-			 * a list of options on the right-hand side of your screen Type one of the
-			 * keywords to find out more | MINE | SHOP | INVENTORY | EXIT
-			 */
 			break;
 		case MINE:
+			if (preloadPhase) {
+				if (time % 120 == 0) {
+					messagebox.write("Welcome to the " + player.getLocation().getName(), false);
+					if (time % 60 == 0) {
+						messagebox.write("On your right-hand side you will", false);
+						messagebox.write("see a list of keywords to choose from", false);
+						if (time % 30== 0) {
+							messagebox.write("Either click an option,", false);
+							messagebox.write("or type the keyword", false);
+							informationBox.write("Dig");
+							informationBox.write("Inventory");
+							informationBox.write("Exit");
+						}
+					}
+					preloadPhase = false;
+				}
+			}
 			if (!player.isDigging()) {
-				messagebox.write("Welcome to the mines", false);
+				player.setCanType(true);
+				if (player.messageSubmitted()) {
+//					System.out.println("message submitted");
+					messageLoop: for (Label l : messagebox.getMessages()) { // Check messages for keywords
+						String m = l.getText().trim();
+						if (m.equalsIgnoreCase("dig")) {
+							player.setDigging(true);
+							player.setCanType(false);
+							messagebox.clear();
+							break messageLoop;
+						} else if (m.equalsIgnoreCase("clear")) {
+							player.clearInventory();
+							messagebox.clear();
+							break messageLoop;
+						} else if (m.equalsIgnoreCase("inventory")) {
+							setGameState(GameState.INVENTORY);
+							messagebox.clear();
+							break messageLoop;
+						} else if (m.equalsIgnoreCase("exit")) {
+							messagebox.clear();
+							setGameState(GameState.LOBBY);
+							player.setLocation(Location.lobby);
+							informationBox.clear();
+							break messageLoop;
+						}
+					}
+				}
+			}
+			player.setMessageSubmitted(false);
+			break;
+		case INVENTORY:
+			informationBox.write("Exit");
+			player.displayInventory();
+			if (player.messageSubmitted()) {
+				messageLoop: for (Label l : messagebox.getMessages()) { // Check messages for keywords
+					String m = l.getText();
+					if (m.equalsIgnoreCase("exit")) {
+						messagebox.clear();
+						setGameState(GameState.MINE);
+						player.setLocation(Location.mine);
+						break messageLoop;
+					}
+				}
+				player.setMessageSubmitted(false);
+			}
+			break;
+		case SHOP:
+			if (preloadPhase) {
+				player.setCanType(true);
+				messagebox.write("Welcome to the " + player.getLocation().getName(), false);
 				if (time % 30 == 0) {
 					messagebox.write("On your right-hand side you will", false);
 					messagebox.write("see a list of keywords to choose from", false);
@@ -203,16 +291,27 @@ public class Game implements Runnable {
 					messagebox.write("Either click an option,", false);
 					messagebox.write("or type the keyword", false);
 				}
+				informationBox.write("Sell");
+				informationBox.write("Inventory");
+				informationBox.write("Exit");
 			}
-			informationBox.write("Dig");
-			informationBox.write("Exit");
-
 			if (player.messageSubmitted()) {
-				messageLoop: for (String m : messagebox.getMessages()) {
-					if (m.equalsIgnoreCase("dig")) {
-						player.setDigging(true);
-						player.setCanType(false);
+				messageLoop: for (Label l : messagebox.getMessages()) { // Check messages for keywords
+					String m = l.getText().trim();
+					if (m.equalsIgnoreCase("inventory")) {
+						setGameState(GameState.INVENTORY);
 						messagebox.clear();
+						break messageLoop;
+					} else if (m.equalsIgnoreCase("exit")) {
+						messagebox.clear();
+						setGameState(GameState.LOBBY);
+						player.setLocation(Location.lobby);
+						informationBox.clear();
+						break messageLoop;
+					} else if (m.equalsIgnoreCase("sell")) {
+//						messagebox.clear();
+						player.sellAll();
+						player.setMessageSubmitted(false);
 						break messageLoop;
 					}
 				}
@@ -221,14 +320,6 @@ public class Game implements Runnable {
 			break;
 		default:
 			break;
-		}
-
-		if (Game.getGameState() == Game.GameState.WELCOME) {
-			messagebox.write("Welcome to The Village 1.5!", false);
-			if (time % (180) == 0) {
-				messagebox.write("What is your name?", false);
-				Game.setGameState(GameState.LOGIN);
-			}
 		}
 	}
 
@@ -265,6 +356,7 @@ public class Game implements Runnable {
 	}
 
 	public static void setGameState(GameState c) {
+		preloadPhase = true;
 		currentState = c;
 	}
 

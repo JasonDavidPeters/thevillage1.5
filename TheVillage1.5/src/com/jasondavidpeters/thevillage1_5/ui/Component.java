@@ -6,6 +6,7 @@ public class Component {
 	
 	protected int x, y, width, height;
 	protected int time;
+	protected boolean needRender;
 	
 	
 	public Component(int x, int y, int width, int height) {
@@ -32,6 +33,12 @@ public class Component {
 	}
 	public int getY() {
 		return y;
+	}
+	public boolean needRender() {
+		return needRender;
+	}
+	public void setNeedRender(boolean render) {
+		needRender=render;
 	}
 
 }

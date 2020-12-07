@@ -1,24 +1,20 @@
 package com.jasondavidpeters.thevillage1_5.entity;
 
 import java.awt.Graphics;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.NotSerializableException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Random;
 
 import com.jasondavidpeters.thevillage1_5.Game;
+import com.jasondavidpeters.thevillage1_5.Game.GameState;
+import com.jasondavidpeters.thevillage1_5.io.PlayerSave;
 import com.jasondavidpeters.thevillage1_5.ui.ChatBox;
 import com.jasondavidpeters.thevillage1_5.ui.Component;
 import com.jasondavidpeters.thevillage1_5.ui.InformationBox;
 import com.jasondavidpeters.thevillage1_5.ui.MessageBox;
+import com.jasondavidpeters.thevillage1_5.world.Mine;
 
-public class Player implements Serializable {
-	private static final long serialVersionUID = 1L;
-
+public class Player extends Entity {
 	private boolean messageSubmitted;
 
 	/*
@@ -30,7 +26,7 @@ public class Player implements Serializable {
 	private transient ChatBox c;
 	private transient InformationBox info;
 	private transient Random random = new Random();
-	
+
 	private boolean canType;
 	private boolean preload;
 	private boolean digging;
@@ -38,15 +34,19 @@ public class Player implements Serializable {
 	public int loginPhase;
 	private int time;
 	private int diggingCount;
+	private boolean clearScreen;
+	private boolean inventoryFullNotif;
 
 	private String username;
 	private String password;
-	private final int INVENTORY_SLOTS = 5;
+	private final int MAX_INVENTORY_SLOTS = 15;
 	private boolean playerExists;
+	private int freeInventorySlots;
+	private boolean displayingInventory;
 
-	public Player() {
+	private HashMap<String, Object> attributes = new HashMap<String, Object>();
 
-	}
+	private Entity[] inventory = new Entity[MAX_INVENTORY_SLOTS];
 
 	public Player(String username) {
 		super();
@@ -60,7 +60,6 @@ public class Player implements Serializable {
 	}
 
 	public void render(Graphics g) {
-
 	}
 
 	public void tick() {
@@ -89,15 +88,50 @@ public class Player implements Serializable {
 		}
 		c.chat(this);
 
-		if (isDigging() && diggingCount < INVENTORY_SLOTS) {
-			if (time % (random.nextInt(120) + 30) == 0) {
-				m.write(new String("You have found something."), true);
-				diggingCount++;
+		if (isDigging() && getFreeInventorySlots() > 0) {
+			List<Ore> potentialOres = ((Mine) getLocation()).getAvailableOres();
+			Ore randomOre = null;
+			int bestChance = 0;
+			int sum = 0;
+			for (Ore o : potentialOres) {
+				int chance = o.getChance();
+				if ((sum = (random.nextInt(chance)) + 1) > bestChance) {
+//					System.out.println(sum + " " + bestChance);
+//					System.out.println(o.getName() + " " + sum + " " + chance + " " + bestChance);
+					bestChance = sum;
+					randomOre = o;
+
+				}
 			}
-		} else if (diggingCount >= INVENTORY_SLOTS) {
+			if (time % (random.nextInt(randomOre.getMaxHarvestTime()) + randomOre.getMinHarvestTime()) == 0) {
+				int quantity = random.nextInt((randomOre.getMaxQuantity())) + 1;
+				m.write("You have found " + quantity + "x " + randomOre.getName(), true);
+				qty: for (int j = 0; j < quantity; j++) {
+					for (int i = 0; i < inventory.length; i++) {
+						if (inventory[i] == null) {
+							/*
+							 * TODO: each inventory slot holds 1 item so for each quantity of ore, take up
+							 * that many slots
+							 */
+							inventory[i] = randomOre;
+							continue qty;
+						}
+					}
+				}
+				if (!inventoryFullNotif)
+					inventoryFullNotif = true;
+
+			}
+		} else if (inventoryFullNotif && getFreeInventorySlots() <= 0) {
 			setDigging(false);
-			diggingCount = 0;
+			m.write("Your inventory is full", false);
+			inventoryFullNotif = false;
+			Game.setGameState(GameState.MINE);
 			m.clear();
+		}
+
+		if (time % (60 * 3) == 0) { // For now every 3 minutes (60 ticks a second) update attributes
+			addAttribute("inventory", inventory);
 		}
 //		messageSubmitted = c.submitted;
 		/*
@@ -106,44 +140,30 @@ public class Player implements Serializable {
 		 */
 	}
 
-	public void save() {
-		File file = null;
-		ObjectOutputStream ostream = null;
-		try {
-			String path = System.getProperty("user.dir");
-			file = new File(path + "\\res\\players\\" + getName() + ".txt");
-			if (!file.exists())
-				file.createNewFile();
-			ostream = new ObjectOutputStream(new FileOutputStream(file));
-			ostream.writeObject(this);
-		} catch (Exception e) {
-			if (e instanceof NotSerializableException)
-				System.err.println(e.getCause() + " is not serializable");
-			e.printStackTrace();
-		}
+	public void addAttribute(String k, Object v) {
+		// TODO: check for key and update value if exists
+		attributes.put(k, v);
 	}
 
-	public Player load() {
-		Player p = null;
-		File f = null;
-		ObjectInputStream istream = null;
-		try {
-			String path = System.getProperty("user.dir");
-			f = new File(path + "\\res\\players\\" + getName() + ".txt");
-			if (!f.exists())
-				playerExists = false;
-			else {
-				playerExists = true;
-				istream = new ObjectInputStream(new FileInputStream(f));
-				Object readObject = istream.readObject();
-				if (readObject instanceof Player)
-					p = (Player) readObject;
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
+	public void save() {
+		PlayerSave saveFile = new PlayerSave(getName(), getPassword());
+		// key, v
+		saveFile.setAttributes(attributes);
+		saveFile.save(); // send attributes
+	}
+
+	public void load() {
+		PlayerSave loadFile = new PlayerSave(getName(), getPassword());
+		loadFile = loadFile.load(this);
+		if (playerExists) {
+			setPassword(loadFile.getPassword());
+			attributes = loadFile.getAttributes();
+			/*
+			 * UNLOAD ATTRIBUTES HERE
+			 */
+			inventory = (Entity[]) attributes.get("inventory");
+			System.out.println("Loaded file for: " + loadFile.getName());
 		}
-		preload = false;
-		return p;
 	}
 
 	public String getName() {
@@ -191,8 +211,12 @@ public class Player implements Serializable {
 		this.digging = digging;
 	}
 
-	public boolean playerExists() {
+	public boolean getPlayerExists() {
 		return playerExists;
+	}
+
+	public void setPlayerExists(boolean playerExists) {
+		this.playerExists = playerExists;
 	}
 
 	public void setPassword(String password) {
@@ -200,7 +224,77 @@ public class Player implements Serializable {
 
 	}
 
+	public int getFreeInventorySlots() {
+		int count = 0;
+		for (int i = 0; i < inventory.length; i++) {
+			if (inventory[i] == null)
+				count++;
+		}
+		return freeInventorySlots = count;
+		/*
+		 * inventory[0] = ore inventory[1] = ore inventory[2] = null inventory[3] = ore;
+		 */
+	}
+
 	public String getPassword() {
 		return password;
+	}
+
+	public void clearInventory() {
+		for (int i = 0; i < inventory.length; i++) {
+			inventory[i] = null;
+		}
+		m.write("You clear your inventory.", false);
+
+	}
+
+	public void displayInventory() {
+		if (getFreeInventorySlots() == inventory.length) {
+			m.write("Your inventory is empty", false);
+			Game.setGameState(GameState.LOBBY);
+			return;
+		}
+		HashMap<Entity, Integer> inv = new HashMap<Entity, Integer>();
+		for (int i = 0; i < inventory.length; i++) {
+			Entity e = inventory[i]; // coal
+			if (inv.containsKey(e)) {
+				inv.replace(e, inv.get(e) + 1);
+			} else {
+				inv.put(e, 1);
+			}
+		}
+
+		// loop through hashmap inv and display key x value
+		if (!displayingInventory) {
+			for (Entity e : inv.keySet()) {
+				m.write(e.getName() + " " + inv.get(e), false);
+			}
+			displayingInventory = true;
+		}
+		/*
+		 * Get count of unique entities quantity of each entity
+		 * 
+		 */
+
+	}
+
+	public void sellAll() {
+		if (getFreeInventorySlots() == inventory.length) {
+			m.write("Your inventory is empty", false);
+			Game.setGameState(GameState.LOBBY);
+			return;
+		}
+		for (int i = 0; i < inventory.length; i++) {
+			if (inventory[i] instanceof Ore) {
+				Ore o = (Ore) inventory[i];
+				m.write("You have sold, " + o.getName() + " for: " + o.getCost(), false);
+				inventory[i] = null;
+			} else {
+				m.write("You have nothing to sell", false);
+			}
+		}
+	}
+	public boolean isDisplayingInventory() {
+		return displayingInventory;
 	}
 }

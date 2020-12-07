@@ -8,7 +8,7 @@ import java.awt.image.BufferedImage;
 
 import com.jasondavidpeters.thevillage1_5.Game;
 import com.jasondavidpeters.thevillage1_5.entity.Player;
-import com.jasondavidpeters.thevillage1_5.input.Keyboard;
+import com.jasondavidpeters.thevillage1_5.io.Keyboard;
 
 public class ChatBox extends Component {
 	BufferedImage img;

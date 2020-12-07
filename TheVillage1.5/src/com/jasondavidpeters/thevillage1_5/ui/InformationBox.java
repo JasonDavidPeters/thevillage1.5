@@ -20,7 +20,7 @@ public class InformationBox extends Component {
 				return;
 		if (text.equalsIgnoreCase(""))
 			return;
-		labels.add(new Label(text,x,(y+15+fontSize)*(labels.size()+1),0,0));
+		labels.add(new Label(text,x,(y+15+fontSize)*(labels.size()+1)));
 	}
 
 	public void render(Graphics g) {

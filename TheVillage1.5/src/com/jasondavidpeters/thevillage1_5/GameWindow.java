@@ -5,8 +5,8 @@ import java.awt.Dimension;
 
 import javax.swing.JFrame;
 
-import com.jasondavidpeters.thevillage1_5.input.Keyboard;
-import com.jasondavidpeters.thevillage1_5.input.Mouse;
+import com.jasondavidpeters.thevillage1_5.io.Keyboard;
+import com.jasondavidpeters.thevillage1_5.io.Mouse;
 
 public class GameWindow extends Canvas {
 

@@ -1,4 +1,4 @@
-package com.jasondavidpeters.thevillage1_5.input;
+package com.jasondavidpeters.thevillage1_5.io;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
