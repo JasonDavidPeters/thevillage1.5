@@ -34,8 +34,6 @@ public class MessageBox extends Component {
 	}
 
 	public void render(Graphics g) {
-		g.setColor(Color.blue);
-		g.fillRect(x, y, width, height);
 		g.setColor(Color.black);
 		g.setFont(messageFont);
 		for (int i = startingPoint; i < messages.size(); i++) {
@@ -70,11 +68,12 @@ public class MessageBox extends Component {
 		g.fillRect(width - scrollbarWidth, scrollBarY, scrollbarWidth, scrollBarHeight);
 	}
 
-	public void write(String message) {
+	public void write(String message, boolean repeatable) {
 		if (message.equalsIgnoreCase(""))
 			return;
+		if (!repeatable)
 		if (messages.contains(message)) return;
-		messages.add(message);
+		messages.add(message.trim());
 	}
 
 	public void setSizeInc(int c) {

@@ -4,13 +4,10 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
 
-import javax.imageio.ImageIO;
-
-import com.jasondavidpeters.thevillage1_5.GameWindow;
+import com.jasondavidpeters.thevillage1_5.Game;
+import com.jasondavidpeters.thevillage1_5.entity.Player;
 import com.jasondavidpeters.thevillage1_5.input.Keyboard;
 
 public class ChatBox extends Component {
@@ -23,24 +20,15 @@ public class ChatBox extends Component {
 	private boolean canType;
 	private int timer;
 	private boolean appended;
+	public boolean submitted;
+	private Player p;
+	private MessageBox m;
 
 	public ChatBox(int x, int y, int width, int height) {
-		super(x, y, width, height);
-		load();
-
-	}
-
-	public void load() {
-		try {
-			img = ImageIO.read(ChatBox.class.getResource("/gfx/chatbox.png"));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
+		super(x + 5, y, width, height);
 	}
 
 	public void render(Graphics g) {
-		g.drawImage(img, x, y, width, height, null);
 		g.setColor(Color.BLACK);
 		g.setFont(chatFont);
 		g.drawString(sb.toString(), x, y + 50);
@@ -49,12 +37,12 @@ public class ChatBox extends Component {
 	}
 
 	public void tick() {
-		chat();
 		timer++;
 //		if (timer %4 ==0)
 	}
 
-	public void chat() {
+	public void chat(Player player) {
+		p = player;
 		if (canType) {
 			if (Keyboard.key == KeyEvent.VK_BACK_SPACE) {
 				if (sb.length() > 0) { // string must be at least 1 character long to delete a character with backspace
@@ -64,16 +52,18 @@ public class ChatBox extends Component {
 					appended = false;
 					Keyboard.resetKey();
 				}
-			}
-
-			else if (stringWidth >= GameWindow.WIDTH - chatFont.getSize()) {
+			} else if (stringWidth >= 500) {
 				sb.deleteCharAt(sb.lastIndexOf(sb.toString())); // if the string is at the end of the window then delete
 																// the last character
 			} else if (!pressedEnter && Keyboard.key == KeyEvent.VK_ENTER && (sb.toString().trim()).length() > 0) { // string
+				
 				if ((sb.toString().trim()).length() > 0)
-					pressedEnter = true;
-				else
-					pressedEnter = false;
+					// update messagebox first
+					for (Component c: Game.uimanager.getComponents())
+						if (c instanceof MessageBox) m = (MessageBox) c;
+					m.write(getMessage(),false);
+					player.setMessageSubmitted(true);
+					setMessage("");
 
 			} else if (!appended && Keyboard.key != '\0') {
 //				System.out.println("appending: " + Keyboard.key);
@@ -97,6 +87,9 @@ public class ChatBox extends Component {
 
 	public String getMessage() {
 		return sb.toString();
+	}
+	public Player getPlayer() {
+		return p;
 	}
 
 	public void setMessage(String message) {

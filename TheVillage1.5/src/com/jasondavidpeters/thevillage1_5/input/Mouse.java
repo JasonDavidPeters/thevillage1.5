@@ -7,7 +7,27 @@ public class Mouse implements MouseListener {
 
 	public static double mouseX, mouseY = -1;
 	public static int mouseB = -1;
-	public boolean pressed;
+	public static boolean pressed;
+
+	public void mousePressed(MouseEvent e) {
+		if (!pressed) pressed = true;
+		if (pressed) {
+			mouseB = e.getButton();
+			mouseX = e.getX();
+			mouseY = e.getY();
+		} else if (!pressed) {
+			mouseB = -1;
+			mouseX = -1;
+			mouseY = -1;			
+		}
+	}
+
+	public void mouseReleased(MouseEvent e) {
+		pressed = false;
+		mouseB = -1;
+		mouseX = -1;
+		mouseY = -1;
+	}
 
 	public void mouseClicked(MouseEvent e) {
 	}
@@ -17,27 +37,5 @@ public class Mouse implements MouseListener {
 
 	public void mouseExited(MouseEvent e) {
 	}
-
-	public void mousePressed(MouseEvent e) {
-		if (!pressed) {
-			mouseB = e.getButton();
-			mouseX = e.getX();
-			mouseY = e.getY();
-			pressed = true;
-		} else {
-			mouseB = -1;
-			mouseX = -1;
-			mouseY = -1;
-			pressed=false;
-		}
-	}
-
-	public void mouseReleased(MouseEvent e) {
-		mouseB = -1;
-		mouseX = -1;
-		mouseY = -1;
-		pressed=false;
-	}
-	
 
 }

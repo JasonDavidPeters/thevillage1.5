@@ -2,6 +2,7 @@ package com.jasondavidpeters.thevillage1_5.ui;
 
 import java.awt.Graphics;
 
+import com.jasondavidpeters.thevillage1_5.Game;
 import com.jasondavidpeters.thevillage1_5.input.Mouse;
 
 public class Label extends Component {
@@ -9,10 +10,9 @@ public class Label extends Component {
 	private String text;
 	private double textWidth;
 	private boolean checkBounds;
-
-	/*
-	 * what are the dimensions of the label?
-	 */
+	private boolean pressed;
+	private MessageBox m;
+	private boolean doOnce;
 
 	public Label(String text, int x, int y, int width, int height) {
 		super(x, y, 0, 0);
@@ -32,17 +32,26 @@ public class Label extends Component {
 	}
 
 	public void tick() {
+		if (!doOnce) {
+			for (Component c : Game.uimanager.getComponents()) {
+				if (c instanceof MessageBox) m = (MessageBox) c;
+			}
+			doOnce = true;
+		}
 		if (Mouse.mouseB == 1)
 			checkBounds = true;
 		else
 			checkBounds = false;
-
-		if (Mouse.mouseB == 1)
-//			System.out.println(Mouse.mouseB);
-			if (Mouse.mouseX >= x && Mouse.mouseX <= x + textWidth && Mouse.mouseY >= y - 15 && Mouse.mouseY <= y) {
-				System.out.println(Mouse.mouseB + " " + Mouse.mouseX);
-//				System.out.println(getText());
+		if (!pressed) {
+			if (Mouse.mouseB == 1) {
+				if (Mouse.mouseX >= x && Mouse.mouseX <= x + textWidth && Mouse.mouseY >= y - 15 && Mouse.mouseY <= y) {
+					pressed = true;
+					// TODO when the player clicks on an option, send a message to the chat
+					m.write(getText(),false);
+				}
 			}
+		} else if (Mouse.mouseB != 1)
+			pressed = false;
 
 	}
 

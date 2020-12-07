@@ -11,8 +11,13 @@ public class UIManager {
 	private MessageBox messagebox = null;
 
 	public void add(Component c) {
-		if (c instanceof Component)
+		if (c instanceof Component) {
+			if (c instanceof ChatBox)
+				chatbox = (ChatBox) c;
+			if (c instanceof MessageBox)
+				messagebox = (MessageBox) c;
 			components.add(c);
+		}
 		else
 			System.err.println("Component is not instanced");
 	}
@@ -24,25 +29,23 @@ public class UIManager {
 	}
 
 	public void tick() {
-		for (int i = 0; i < components.size(); i++) {
+		for (int i = 0; i < components.size(); i++) 
 			components.get(i).tick();
-			if (components.get(i) instanceof ChatBox)
-				chatbox = (ChatBox) components.get(i);
-			if (components.get(i) instanceof MessageBox)
-				messagebox = (MessageBox) components.get(i);
-		}
-		if (chatbox.pressedEnter) { // if user presses enter
-			messagebox.write(chatbox.getMessage()); // submit message to messagebox
-			if (messagebox.getMessages().size() >= messagebox.maxMessagesPerScreen) { // add scrollbar
-				// System.out.println("scrollbar height: " + messagebox.getScrollbarHeight());
-				messagebox.setSizeInc(messagebox.getSizeInc() + 1);
-				messagebox.setScrollbarHeight(messagebox.getScrollbarHeight() - messagebox.getSizeInc());
-				messagebox.setScrollbarY(messagebox.getScrollbarY() + messagebox.getSizeInc());
-				messagebox.setStartingPoint(messagebox.getStartingPoint() + 1); // only increments to 25
-			}
-			chatbox.setMessage("");
-		}
-		chatbox.pressedEnter = false;
+		
+//		if (chatbox.getPlayer() != null)
+//		if (chatbox.getPlayer().messageSubmitted()) { // if user presses enter
+//			if (messagebox.getMessages().size() >= messagebox.maxMessagesPerScreen) { // add scrollbar
+//				// System.out.println("scrollbar height: " + messagebox.getScrollbarHeight());
+//				messagebox.setSizeInc(messagebox.getSizeInc() + 1);
+//				messagebox.setScrollbarHeight(messagebox.getScrollbarHeight() - messagebox.getSizeInc());
+//				messagebox.setScrollbarY(messagebox.getScrollbarY() + messagebox.getSizeInc());
+//				messagebox.setStartingPoint(messagebox.getStartingPoint() + 1); // only increments to 25
+//			}
+//			chatbox.setMessage("");
+//		}
 
+	}
+	public List<Component> getComponents() {
+		return components;
 	}
 }

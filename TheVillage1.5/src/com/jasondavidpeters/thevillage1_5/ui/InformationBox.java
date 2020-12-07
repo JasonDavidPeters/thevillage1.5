@@ -24,8 +24,6 @@ public class InformationBox extends Component {
 	}
 
 	public void render(Graphics g) {
-		g.setColor(Color.GREEN);
-		g.fillRect(x, y, width, height);
 		g.setColor(Color.BLACK);
 		for (int i = 0; i < labels.size(); i++) {
 			g.drawString(labels.get(i).getText(), x, labels.get(i).getY());
@@ -36,5 +34,9 @@ public class InformationBox extends Component {
 	public void tick() {
 		for (Label l: labels)
 			l.tick();
+	}
+
+	public void clear() {
+		labels.clear();
 	}
 }
