@@ -2,16 +2,18 @@ package com.jasondavidpeters.thevillage1_5.ui;
 
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.util.ArrayList;
 
+import com.jasondavidpeters.thevillage1_5.io.Mouse;
+
 public class MessageBox extends Component {
 
-	private static Font messageFont = new Font(Font.SANS_SERIF, Font.PLAIN, 18);
+//	private static Font messageFont = new Font(Font.SANS_SERIF, Font.PLAIN, 24);
 
 	private ArrayList<Label> messages = new ArrayList<Label>();
-
-	private int messageSpacing = messageFont.getSize();
+	private ArrayList<Label> buffer = new ArrayList<Label>();
 
 	private int scrollBarY, scrollbarX;
 	private int scrollBarHeight;
@@ -20,10 +22,13 @@ public class MessageBox extends Component {
 	public int maxMessagesPerScreen = 20;
 	public int minHeight = 50;
 	public int startingPoint;
-	private int messageHeight = 1;
 	private boolean clear;
-	private boolean renderMessage;
-	
+	private boolean retrieveFontMetrics;
+	private FontMetrics fontMetrics;
+	private boolean append;
+	private boolean scrollUp;
+	private boolean scrollDown;
+
 	public MessageBox(int x, int y, int width, int height) {
 		super(x, y, width, height);
 		scrollBarHeight = height;
@@ -35,52 +40,102 @@ public class MessageBox extends Component {
 	}
 
 	public void render(Graphics g) {
+		if (!retrieveFontMetrics) {
+//			g.setFont(messageFont);
+			fontMetrics = g.getFontMetrics();
+			retrieveFontMetrics = true;
+		}
 		g.setColor(Color.black);
-		g.setFont(messageFont);
-//		if (renderMessage) {
-//			g.drawString(messages.get(messages.size()-1), x, (messageHeight) * messageSpacing);
+
+		g.drawRect(0, 0, width, height);
+
 		for (int i = 0; i < messages.size(); i++) {
 			Label drawLabel = messages.get(i);
-			g.drawString(drawLabel.getText(), drawLabel.getX(), drawLabel.getY());
+			if (drawLabel.getVisible())
+				g.drawString(drawLabel.getText().trim(), drawLabel.getX(), drawLabel.getY());
 		}
-//			renderMessage=false;
-//		}
-//		for (int i = startingPoint; i < messages.size(); i++) {
-//			if (startingPoint > 0) {
-//				g.drawString(messages.get(i).toString(), x, (messageHeight) * messageSpacing);
-//				messageHeight++;
-//			} else {
-//				g.drawString(messages.get(i).toString(), x, (i + 1) * messageSpacing);// calculation needs to change
-//			}
-//		}
-//		messageHeight = 1;
-//		// from startpoint to maxmessage limit, display messages
-//		if (messages.size() >= maxMessagesPerScreen) {
-//			addScrollbar(g);
-//
-//		}
+
+		if (messages.size() >= getMaxMessagesPerScreen()) {
+			// for every message
+//			buffer.add(messages.get(0));
+//			messages.remove(0);
+			// last message = messages.size();
+			// each message has to take the y position of the message before it
+//			messages.remove(0);
+			if (append || scrollUp || scrollDown) {
+				for (Label l : messages) {
+					if (scrollUp) {
+						l.y += 1;
+						if (l.getY() > height) {
+							l.setVisible(false);
+							continue;
+						} else {
+							l.setVisible(true);
+							continue;
+						}
+					} else if (scrollDown) {
+						l.y -= 1;
+						if (l.getY() > height) {
+							l.setVisible(false);
+							continue;
+						} else {
+							l.setVisible(true);
+							continue;
+						}
+					} else if (append && !scrollUp && !scrollDown) {
+						l.y -= 30;
+					}
+				}
+				scrollUp = false;
+				scrollDown = false;
+				append = false;
+			}
+			addScrollbar(g);
+
+		}
 		if (clear) { // clear the screen
 			g.clearRect(x, y, width, height);
 			messages.clear();
 			// potentially have to reset scrollbar and other variables here
 			setClear(false);
 		}
-		// System.out.println("starting point: " + startingPoint);
-		// System.out.println(scrollBarHeight);
 	}
 
 	public void tick() {
 	}
 
 	public void addScrollbar(Graphics g) {
-		g.setColor(Color.cyan);
-		g.fillRect(width - scrollbarWidth, scrollBarY, scrollbarWidth, scrollBarHeight);
+		g.setColor(Color.gray);
+		g.fillRect(width - scrollbarWidth, scrollBarY + 10, scrollbarWidth, scrollBarHeight - 20);
+		g.setColor(Color.DARK_GRAY);
+		// Top button
+		g.fillRect(width - scrollbarWidth, 0, scrollbarWidth, 10);
+		if (Mouse.mouseB == 1) {
+			if (Mouse.mouseX >= width - scrollbarWidth && Mouse.mouseX <= (width - scrollbarWidth) + scrollbarWidth && Mouse.mouseY >= 0
+					&& Mouse.mouseY <= 10) {
+				// up mechanic
+				scrollUp = true;
+			}
+		}
+		// Bottom button
+		g.fillRect(width - scrollbarWidth, height - 10, scrollbarWidth, 10);
+		if (Mouse.mouseB == 1) {
+			if (Mouse.mouseX >= width - scrollbarWidth && Mouse.mouseX <= (width - scrollbarWidth) + scrollbarWidth && Mouse.mouseY >= height - 10
+					&& Mouse.mouseY <= height) {
+				// down mechanic
+				scrollDown = true;
+			}
+		}
+
+		/*
+		 * two buttons
+		 */
 	}
 
 	public void write(String message, boolean repeatable) {
 		if (message.equalsIgnoreCase(""))
 			return;
-		System.out.println(message + " " + messages.size());
+		message.replaceAll("[\\n\\t ]", "");
 		Label label = null;
 		if (messages.size() > 0)
 			label = new Label(message, x, y + messages.get(messages.size() - 1).getY() + 15);
@@ -135,6 +190,17 @@ public class MessageBox extends Component {
 
 	public boolean getClear() {
 		return this.clear;
+	}
+
+	public int getMaxMessagesPerScreen() {
+		int fontHeight = fontMetrics.getHeight();
+		int screenHeight = height;
+		int maxMessages = screenHeight / fontHeight + 2;
+		return maxMessages;
+	}
+
+	public void append(boolean append) {
+		this.append = append;
 	}
 
 }

@@ -46,7 +46,7 @@ public class Player extends Entity {
 
 	private HashMap<String, Object> attributes = new HashMap<String, Object>();
 
-	private Entity[] inventory = new Entity[MAX_INVENTORY_SLOTS];
+	public Entity[] inventory = new Entity[MAX_INVENTORY_SLOTS];
 
 	public Player(String username) {
 		super();
@@ -249,9 +249,10 @@ public class Player extends Entity {
 	}
 
 	public void displayInventory() {
-		if (getFreeInventorySlots() == inventory.length) {
+		if (Game.getGameState() == GameState.INVENTORY && getFreeInventorySlots() == inventory.length) {
+			for (Component c: Game.uimanager.getComponents())
+				if (c instanceof InformationBox) ((InformationBox) c).clear();
 			m.write("Your inventory is empty", false);
-			Game.setGameState(GameState.LOBBY);
 			return;
 		}
 		HashMap<Entity, Integer> inv = new HashMap<Entity, Integer>();
@@ -279,8 +280,10 @@ public class Player extends Entity {
 	}
 
 	public void sellAll() {
-		if (getFreeInventorySlots() == inventory.length) {
+		if (Game.getGameState() == GameState.SHOP
+				&&getFreeInventorySlots() == inventory.length) {
 			m.write("Your inventory is empty", false);
+			info.clear();
 			Game.setGameState(GameState.LOBBY);
 			return;
 		}
@@ -294,6 +297,7 @@ public class Player extends Entity {
 			}
 		}
 	}
+
 	public boolean isDisplayingInventory() {
 		return displayingInventory;
 	}

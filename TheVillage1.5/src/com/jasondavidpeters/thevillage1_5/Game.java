@@ -14,6 +14,7 @@ import com.jasondavidpeters.thevillage1_5.ui.InformationBox;
 import com.jasondavidpeters.thevillage1_5.ui.Label;
 import com.jasondavidpeters.thevillage1_5.ui.MessageBox;
 import com.jasondavidpeters.thevillage1_5.ui.UIManager;
+import com.jasondavidpeters.thevillage1_5.util.Utilities;
 import com.jasondavidpeters.thevillage1_5.world.Location;
 
 public class Game implements Runnable {
@@ -168,24 +169,30 @@ public class Game implements Runnable {
 			break;
 		case LOBBY:
 			if (preloadPhase) {
-				messagebox.write("Welcome to " + player.getLocation().getName(), false);
-				messagebox.write("On your right-hand side you will", false);
-				messagebox.write("see a list of keywords to choose from", false);
-				if (time % 20 == 0) {
-					messagebox.write("Either click an option,", false);
-					messagebox.write("or type the keyword", false);
+				System.out.println("Lobby preloaded phase called");
+				boolean loaded = false;
+				if (!loaded) {
+					if (time % 60 == 0) {
+						messagebox.write("Welcome to " + player.getLocation().getName(), false);
+						messagebox.write("On your right-hand side you will", false);
+						messagebox.write("see a list of keywords to choose from", false);
+						messagebox.write("Either click an option,", false);
+						messagebox.write("or type the keyword", false);
+						informationBox.write("Mine");
+						informationBox.write("Shop");
+						informationBox.write("Inventory");
+						loaded = true;
+					}
 				}
-				informationBox.write("Mine");
-				informationBox.write("Shop");
-				informationBox.write("Inventory");
-				preloadPhase = false;
+				if (loaded)
+					preloadPhase = false;
 			}
 			player.setCanType(true);
 			if (player.messageSubmitted()) { // the user has entered a new message into the messagebox
-				messageLoop: for (Label l : messagebox.getMessages()) { // Check messages for keywords
-					String m = l.getText().trim();
+				messageLoop: for (Label l : Utilities.rearrange(messagebox.getMessages())) { // Check messages for keywords
+					String m = l.getText().trim(); // get the FIRST HIT
+					System.out.println(m);
 					if (m.equalsIgnoreCase("mine")) {
-						System.out.println(true);
 						messagebox.write("We are off to the mines!", false);
 						player.setTransition(true);
 						break messageLoop;
@@ -216,27 +223,26 @@ public class Game implements Runnable {
 			break;
 		case MINE:
 			if (preloadPhase) {
-				if (time % 120 == 0) {
+				boolean loaded = false;
+				if (time % 60 == 0) {
 					messagebox.write("Welcome to the " + player.getLocation().getName(), false);
-					if (time % 60 == 0) {
-						messagebox.write("On your right-hand side you will", false);
-						messagebox.write("see a list of keywords to choose from", false);
-						if (time % 30== 0) {
-							messagebox.write("Either click an option,", false);
-							messagebox.write("or type the keyword", false);
-							informationBox.write("Dig");
-							informationBox.write("Inventory");
-							informationBox.write("Exit");
-						}
-					}
-					preloadPhase = false;
+					messagebox.write("On your right-hand side you will", false);
+					messagebox.write("see a list of keywords to choose from", false);
+					messagebox.write("Either click an option,", false);
+					messagebox.write("or type the keyword", false);
+					informationBox.write("Dig");
+					informationBox.write("Inventory");
+					informationBox.write("Exit");
+					loaded = true;
 				}
+				if (loaded)
+					preloadPhase = false;
 			}
 			if (!player.isDigging()) {
 				player.setCanType(true);
 				if (player.messageSubmitted()) {
 //					System.out.println("message submitted");
-					messageLoop: for (Label l : messagebox.getMessages()) { // Check messages for keywords
+					messageLoop: for (Label l : Utilities.rearrange(messagebox.getMessages())) { // Check messages for keywords
 						String m = l.getText().trim();
 						if (m.equalsIgnoreCase("dig")) {
 							player.setDigging(true);
@@ -248,14 +254,15 @@ public class Game implements Runnable {
 							messagebox.clear();
 							break messageLoop;
 						} else if (m.equalsIgnoreCase("inventory")) {
-							setGameState(GameState.INVENTORY);
 							messagebox.clear();
+							informationBox.clear();
+							setGameState(GameState.INVENTORY);
 							break messageLoop;
 						} else if (m.equalsIgnoreCase("exit")) {
 							messagebox.clear();
+							informationBox.clear();
 							setGameState(GameState.LOBBY);
 							player.setLocation(Location.lobby);
-							informationBox.clear();
 							break messageLoop;
 						}
 					}
@@ -264,13 +271,23 @@ public class Game implements Runnable {
 			player.setMessageSubmitted(false);
 			break;
 		case INVENTORY:
-			informationBox.write("Exit");
-			player.displayInventory();
+			if (preloadPhase) {
+				boolean loaded = false;
+				if (!loaded) {
+					informationBox.write("Exit");
+					player.displayInventory();
+					loaded = true;
+				}
+				if (loaded)
+					preloadPhase = false;
+			}
+			if (player.getFreeInventorySlots() == player.inventory.length) setGameState(GameState.LOBBY);
 			if (player.messageSubmitted()) {
-				messageLoop: for (Label l : messagebox.getMessages()) { // Check messages for keywords
+				messageLoop: for (Label l : Utilities.rearrange(messagebox.getMessages())) { // Check messages for keywords
 					String m = l.getText();
 					if (m.equalsIgnoreCase("exit")) {
 						messagebox.clear();
+						informationBox.clear();
 						setGameState(GameState.MINE);
 						player.setLocation(Location.mine);
 						break messageLoop;
@@ -281,22 +298,27 @@ public class Game implements Runnable {
 			break;
 		case SHOP:
 			if (preloadPhase) {
-				player.setCanType(true);
-				messagebox.write("Welcome to the " + player.getLocation().getName(), false);
-				if (time % 30 == 0) {
-					messagebox.write("On your right-hand side you will", false);
-					messagebox.write("see a list of keywords to choose from", false);
+				boolean loaded = false;
+				if (!loaded) {
+					player.setCanType(true);
+					if (time % 60 == 0) {
+						messagebox.write("Welcome to the " + player.getLocation().getName(), false);
+						messagebox.write("On your right-hand side you will", false);
+						messagebox.write("see a list of keywords to choose from", false);
+						messagebox.write("Either click an option,", false);
+						messagebox.write("or type the keyword", false);
+						informationBox.write("Sell");
+						informationBox.write("Inventory");
+						informationBox.write("Exit");
+						loaded = true;
+					}
 				}
-				if (time % 60 == 0) {
-					messagebox.write("Either click an option,", false);
-					messagebox.write("or type the keyword", false);
-				}
-				informationBox.write("Sell");
-				informationBox.write("Inventory");
-				informationBox.write("Exit");
+				if (loaded)
+					preloadPhase = false;
+
 			}
 			if (player.messageSubmitted()) {
-				messageLoop: for (Label l : messagebox.getMessages()) { // Check messages for keywords
+				messageLoop: for (Label l : Utilities.rearrange(messagebox.getMessages())) { // Check messages for keywords
 					String m = l.getText().trim();
 					if (m.equalsIgnoreCase("inventory")) {
 						setGameState(GameState.INVENTORY);
@@ -304,12 +326,11 @@ public class Game implements Runnable {
 						break messageLoop;
 					} else if (m.equalsIgnoreCase("exit")) {
 						messagebox.clear();
+						informationBox.clear();
 						setGameState(GameState.LOBBY);
 						player.setLocation(Location.lobby);
-						informationBox.clear();
 						break messageLoop;
 					} else if (m.equalsIgnoreCase("sell")) {
-//						messagebox.clear();
 						player.sellAll();
 						player.setMessageSubmitted(false);
 						break messageLoop;

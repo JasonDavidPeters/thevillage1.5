@@ -14,15 +14,18 @@ public class Label extends Component {
 	private MessageBox messagebox;
 	private ChatBox chatbox;
 	private boolean doOnce;
+	private boolean visible;
 
 	public Label(String text, int x, int y) {
-		super(x, y,0,0);
+		super(x, y, 0, 0);
 		this.text = text;
+		visible = true;
 	}
 
 	public Label(String text) {
 		super(0, 0, 0, 0);
 		this.text = text;
+		visible = true;
 	}
 
 	public void render(Graphics g) {
@@ -35,8 +38,10 @@ public class Label extends Component {
 	public void tick() {
 		if (!doOnce) {
 			for (Component c : Game.uimanager.getComponents()) {
-				if (c instanceof MessageBox) messagebox = (MessageBox) c;
-				if (c instanceof ChatBox) chatbox= (ChatBox) c;
+				if (c instanceof MessageBox)
+					messagebox = (MessageBox) c;
+				if (c instanceof ChatBox)
+					chatbox = (ChatBox) c;
 			}
 			doOnce = true;
 		}
@@ -49,13 +54,21 @@ public class Label extends Component {
 				if (Mouse.mouseX >= x && Mouse.mouseX <= x + textWidth && Mouse.mouseY >= y - 15 && Mouse.mouseY <= y) {
 					pressed = true;
 					// TODO when the player clicks on an option, send a message to the chat
-					messagebox.write(getText(),false);
+					messagebox.write(getText(), false);
 					chatbox.getPlayer().setMessageSubmitted(true);
 				}
 			}
 		} else if (Mouse.mouseB != 1)
 			pressed = false;
 
+	}
+	
+	public boolean getVisible() {
+		return visible;
+	}
+
+	public void setVisible(boolean visible) {
+		this.visible = visible;
 	}
 
 	public String getText() {
